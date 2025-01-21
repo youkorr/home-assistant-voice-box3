@@ -1,0 +1,52 @@
+import esphome.codegen as cg
+import esphome.config_validation as cv
+from esphome.components import i2c
+from esphome.const import CONF_ID
+
+# Configuration pour ES7210 (Microphone)
+DEPENDENCIES = ['i2c']
+AUTO_LOAD = ['i2c', 'microphone']  # Ajout de 'microphone'
+
+# Namespace ES7210
+es7210_ns = cg.esphome_ns.namespace('es7210')
+ES7210 = es7210_ns.class_('ES7210', i2c.I2CDevice, cg.Component)
+
+# Schéma ES7210
+CONFIG_SCHEMA_ES7210 = cv.Schema({
+    cv.GenerateID(): cv.declare_id(ES7210),
+}).extend(i2c.i2c_device_schema(0x40)).extend(cv.COMPONENT_SCHEMA)
+
+def to_code_es7210(config):
+    var = cg.new_Pvariable(config[CONF_ID])
+    yield cg.register_component(var, config)
+    yield i2c.register_i2c_device(var, config)
+
+# Configuration pour ES8311 (DAC Audio)
+es8311_ns = cg.esphome_ns.namespace('es8311')
+ES8311 = es8311_ns.class_('ES8311', i2c.I2CDevice, cg.Component)
+
+# Schéma ES8311
+CONFIG_SCHEMA_ES8311 = cv.Schema({
+    cv.GenerateID(): cv.declare_id(ES8311),
+    cv.Optional("sample_rate", default=16000): cv.int_range(min=8000, max=48000),
+}).extend(i2c.i2c_device_schema(0x18)).extend(cv.COMPONENT_SCHEMA)
+
+def to_code_es8311(config):
+    var = cg.new_Pvariable(config[CONF_ID])
+    yield cg.register_component(var, config)
+    yield i2c.register_i2c_device(var, config)
+    
+    if "sample_rate" in config:
+        cg.add(var.set_sample_rate(config["sample_rate"]))
+
+# Combinaison des composants
+CONFIG_SCHEMA = cv.Schema({
+    cv.Optional("es7210"): CONFIG_SCHEMA_ES7210,
+    cv.Optional("es8311"): CONFIG_SCHEMA_ES8311,
+})
+
+def to_code(config):
+    if "es7210" in config:
+        yield to_code_es7210(config["es7210"])
+    if "es8311" in config:
+        yield to_code_es8311(config["es8311"])
