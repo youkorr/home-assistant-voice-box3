@@ -1,0 +1,35 @@
+# Fichiers de compilation et binaires
+    *.bin
+    *.elf
+    *.hex
+    *.o
+    *.a
+    *.pyc
+    *.pio
+    *.log
+
+    # Dossiers de build et dépendances
+    .pio/
+    .vscode/
+    .idea/
+    build/
+    dist/
+    node_modules/
+
+    # Fichiers de configuration locaux
+    .env
+    *.local
+    *.secret
+
+    # Fichiers système
+    .DS_Store
+    Thumbs.db
+
+    # Fichiers temporaires
+    *.tmp
+    *.swp
+    *.swo
+
+    # Fichiers spécifiques à ESPHome
+    .esphome/
+    secrets.yaml
