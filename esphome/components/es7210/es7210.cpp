@@ -1,5 +1,5 @@
-#include "es7210_idf.h"
-#include "driver/i2c.h"
+#include "es7210.h"         // Pour la classe ES7210
+#include "es7210_idf.h"     // <source_id data="es7210_idf.h" />
 
 #define ES7210_I2C_ADDR 0x40  // Adresse I2C du ES7210
 
