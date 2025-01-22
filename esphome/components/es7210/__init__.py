@@ -12,17 +12,9 @@ CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(ES7210),
 }).extend(i2c.i2c_device_schema(0x40)).extend(cv.COMPONENT_SCHEMA)
 
-def to_code(config):
+async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    
-    # Ajouter les fichiers nécessaires
-    cg.add_library("es7210", None)  # Facultatif si vous avez une bibliothèque externe
-    cg.add_include("es7210/es7210_idf.h")
-    cg.add_include("es7210/es7210.h")
-    cg.add_source("es7210/es7210_idf.cpp")
-    cg.add_source("es7210/es7210.cpp")
+    await cg.register_component(var, config)
+    await i2c.register_i2c_device(var, config)
 
-    # Enregistrer le composant et le périphérique I2C
-    yield cg.register_component(var, config)
-    yield i2c.register_i2c_device(var, config)
 
