@@ -20,8 +20,8 @@ def to_code(config):
     
     # Ajouter explicitement les fichiers source C++
     cg.add_library("espressif/esp32-camera", None)  # Exemple de dépendance externe (si nécessaire)
-    cg.add_source("es7210.cpp")                    # Fichier principal du composant
-    cg.add_source("es7210_idf.cpp")                # Fichier ESP-IDF personnalisé
+    cg.add_build_flag("-DUSE_ES7210")  
+    cg.add_define("USE_ES7210")  
     
     # Enregistrer le composant et le périphérique I2C
     yield cg.register_component(var, config)
