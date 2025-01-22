@@ -1,29 +1,16 @@
-#include "es7210.h"
-#include "es7210_idf.h"  // Inclure le code ESP-IDF
-#include "esphome/core/log.h"  // Inclure les logs ESPHome
+#include "es7210_idf.h"
+#include "driver/i2c.h"
 
-static const char *TAG = "es7210";  // Définir la macro TAG
+#define ES7210_I2C_ADDR 0x40  // Adresse I2C du ES7210
 
-void ES7210::setup() {
-    esphome::ESP_LOGD(TAG, "Initializing ES7210...");
-    es7210_init(I2C_NUM_0);  // Utiliser la fonction ESP-IDF
-    esphome::ESP_LOGD(TAG, "I2C Address: 0x%02X", i2c_address);
-    esphome::ESP_LOGD(TAG, "Sample Rate: %d Hz", sample_rate);
-    esphome::ESP_LOGD(TAG, "Bits per Sample: %d", bits_per_sample);
-}
-
-void ES7210::loop() {
-    // Logique principale du ES7210 (optionnel)
-}
-
-void ES7210::set_i2c_address(uint8_t address) {
-    this->i2c_address = address;
-}
-
-void ES7210::set_sample_rate(uint32_t sample_rate) {
-    this->sample_rate = sample_rate;
-}
-
-void ES7210::set_bits_per_sample(uint8_t bits_per_sample) {
-    this->bits_per_sample = bits_per_sample;
+void es7210_init(i2c_port_t i2c_port) {
+    // Exemple : Configurer le registre 0x00 du ES7210
+    uint8_t reg_data[2] = {0x00, 0x01};  // Registre 0x00, Valeur 0x01
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (ES7210_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write(cmd, reg_data, 2, true);
+    i2c_master_stop(cmd);
+    i2c_master_cmd_begin(i2c_port, cmd, 1000 / portTICK_PERIOD_MS);
+    i2c_cmd_link_delete(cmd);
 }
