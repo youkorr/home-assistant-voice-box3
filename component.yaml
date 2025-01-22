@@ -16,10 +16,10 @@ CONFIG_SCHEMA_ES7210 = cv.Schema({
     cv.GenerateID(): cv.declare_id(ES7210),
 }).extend(i2c.i2c_device_schema(0x40)).extend(cv.COMPONENT_SCHEMA)
 
-def to_code_es7210(config):
+async def to_code_es7210(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    yield cg.register_component(var, config)
-    yield i2c.register_i2c_device(var, config)
+    await cg.register_component(var, config)
+    await i2c.register_i2c_device(var, config)
 
 # Configuration pour ES8311 (DAC Audio)
 es8311_ns = cg.esphome_ns.namespace('es8311')
@@ -31,10 +31,10 @@ CONFIG_SCHEMA_ES8311 = cv.Schema({
     cv.Optional("sample_rate", default=16000): cv.int_range(min=8000, max=48000),
 }).extend(i2c.i2c_device_schema(0x18)).extend(cv.COMPONENT_SCHEMA)
 
-def to_code_es8311(config):
+async def to_code_es8311(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    yield cg.register_component(var, config)
-    yield i2c.register_i2c_device(var, config)
+    await cg.register_component(var, config)
+    await i2c.register_i2c_device(var, config)
     
     if "sample_rate" in config:
         cg.add(var.set_sample_rate(config["sample_rate"]))
@@ -45,8 +45,9 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional("es8311"): CONFIG_SCHEMA_ES8311,
 })
 
-def to_code(config):
+async def to_code(config):
     if "es7210" in config:
-        yield to_code_es7210(config["es7210"])
+        await to_code_es7210(config["es7210"])
     if "es8311" in config:
-        yield to_code_es8311(config["es8311"])
+        await to_code_es8311(config["es8311"])
+
