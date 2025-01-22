@@ -1,53 +1,103 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import i2c
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, CONF_I2C_ID, CONF_ADDRESS, CONF_ENABLE_PIN
 
 # Configuration pour ES7210 (Microphone)
 DEPENDENCIES = ['i2c']
-AUTO_LOAD = ['i2c', 'microphone']  # Ajout de 'microphone'
+AUTO_LOAD = ['i2c', 'microphone']
 
 # Namespace ES7210
 es7210_ns = cg.esphome_ns.namespace('es7210')
 ES7210 = es7210_ns.class_('ES7210', i2c.I2CDevice, cg.Component)
 
-# Schéma ES7210
+# Schéma ES7210 avec paramètres supplémentaires
 CONFIG_SCHEMA_ES7210 = cv.Schema({
     cv.GenerateID(): cv.declare_id(ES7210),
+    cv.Required(CONF_I2C_ID): cv.use_id(i2c.I2CComponent),
+    cv.Optional(CONF_ADDRESS, default=0x40): cv.i2c_address,
+    cv.Optional("i2s_din_pin"): cv.int_,
+    cv.Optional("pdm", default=False): cv.boolean,
+    cv.Optional("adc", default={}): cv.Schema({
+        cv.Required(CONF_I2C_ID): cv.use_id(i2c.I2CComponent),
+        cv.Required("model", default="es7210"): cv.string,
+        cv.Required(CONF_ADDRESS, default=0x40): cv.i2c_address,
+    }),
+    cv.Optional("sample_rate", default=16000): cv.int_range(min=8000, max=48000),
+    cv.Optional("bits_per_sample", default="16bit"): cv.enum(["16bit", "24bit"], upper=True),
+    cv.Optional("fixed_settings", default=True): cv.boolean,
 }).extend(i2c.i2c_device_schema(0x40)).extend(cv.COMPONENT_SCHEMA)
 
-async def to_code_es7210(config):
-    var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
-    await i2c.register_i2c_device(var, config)
-
-# Configuration pour ES8311 (DAC Audio)
+# Namespace ES8311
 es8311_ns = cg.esphome_ns.namespace('es8311')
 ES8311 = es8311_ns.class_('ES8311', i2c.I2CDevice, cg.Component)
 
-# Schéma ES8311
+# Schéma ES8311 avec paramètres supplémentaires
 CONFIG_SCHEMA_ES8311 = cv.Schema({
     cv.GenerateID(): cv.declare_id(ES8311),
+    cv.Required(CONF_I2C_ID): cv.use_id(i2c.I2CComponent),
+    cv.Optional(CONF_ADDRESS, default=0x18): cv.i2c_address,
+    cv.Optional(CONF_ENABLE_PIN): cv.Schema({
+        cv.Required("number"): cv.int_,
+        cv.Optional("ignore_strapping_warning", default=False): cv.boolean,
+    }),
     cv.Optional("sample_rate", default=16000): cv.int_range(min=8000, max=48000),
+    cv.Optional("bits_per_sample", default="16bit"): cv.enum(["16bit", "24bit"], upper=True),
+    cv.Optional("fixed_settings", default=True): cv.boolean,
 }).extend(i2c.i2c_device_schema(0x18)).extend(cv.COMPONENT_SCHEMA)
 
-async def to_code_es8311(config):
+# Fonction pour ES7210
+def to_code_es7210(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
-    await i2c.register_i2c_device(var, config)
-    
+    yield cg.register_component(var, config)
+    yield i2c.register_i2c_device(var, config)
+
+    # Configurer les paramètres supplémentaires
+    if "i2s_din_pin" in config:
+        cg.add(var.set_i2s_din_pin(config["i2s_din_pin"]))
+    if "pdm" in config:
+        cg.add(var.set_pdm_mode(config["pdm"]))
+    if "adc" in config:
+        adc_config = config["adc"]
+        cg.add(var.set_adc_config(adc_config[CONF_I2C_ID], adc_config["model"], adc_config[CONF_ADDRESS]))
     if "sample_rate" in config:
         cg.add(var.set_sample_rate(config["sample_rate"]))
+    if "bits_per_sample" in config:
+        cg.add(var.set_bits_per_sample(config["bits_per_sample"]))
+    if "fixed_settings" in config:
+        cg.add(var.set_fixed_settings(config["fixed_settings"]))
 
-# Combinaison des composants
+# Fonction pour ES8311
+def to_code_es8311(config):
+    var = cg.new_Pvariable(config[CONF_ID])
+    yield cg.register_component(var, config)
+    yield i2c.register_i2c_device(var, config)
+
+    # Configurer les paramètres supplémentaires
+    if "enable_pin" in config:
+        enable_pin = config[CONF_ENABLE_PIN]
+        pin_var = cg.new_Pvariable(enable_pin["number"])
+        if enable_pin.get("ignore_strapping_warning", False):
+            cg.add(pin_var.set_ignore_strapping_warning(True))
+        cg.add(var.set_enable_pin(pin_var))
+    if "sample_rate" in config:
+        cg.add(var.set_sample_rate(config["sample_rate"]))
+    if "bits_per_sample" in config:
+        cg.add(var.set_bits_per_sample(config["bits_per_sample"]))
+    if "fixed_settings" in config:
+        cg.add(var.set_fixed_settings(config["fixed_settings"]))
+
+# Schéma global pour ES7210 et ES8311
 CONFIG_SCHEMA = cv.Schema({
     cv.Optional("es7210"): CONFIG_SCHEMA_ES7210,
     cv.Optional("es8311"): CONFIG_SCHEMA_ES8311,
 })
 
-async def to_code(config):
+# Fonction principale
+def to_code(config):
     if "es7210" in config:
-        await to_code_es7210(config["es7210"])
+        yield to_code_es7210(config["es7210"])
     if "es8311" in config:
-        await to_code_es8311(config["es8311"])
+        yield to_code_es8311(config["es8311"])
+
 
