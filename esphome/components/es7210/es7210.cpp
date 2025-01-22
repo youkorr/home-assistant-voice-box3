@@ -1,12 +1,13 @@
 #include "es7210.h"
 #include "es7210_idf.h"  // Inclure le code ESP-IDF
+#include "esphome/core/log.h"  // Inclure les logs ESPHome
 
 void ES7210::setup() {
-    ESP_LOGD("ES7210", "Initializing ES7210...");
+    esphome::ESP_LOGD("ES7210", "Initializing ES7210...");
     es7210_init(I2C_NUM_0);  // Utiliser la fonction ESP-IDF
-    ESP_LOGD("ES7210", "I2C Address: 0x%02X", i2c_address);
-    ESP_LOGD("ES7210", "Sample Rate: %d Hz", sample_rate);
-    ESP_LOGD("ES7210", "Bits per Sample: %d", bits_per_sample);
+    esphome::ESP_LOGD("ES7210", "I2C Address: 0x%02X", i2c_address);
+    esphome::ESP_LOGD("ES7210", "Sample Rate: %d Hz", sample_rate);
+    esphome::ESP_LOGD("ES7210", "Bits per Sample: %d", bits_per_sample);
 }
 
 void ES7210::loop() {
