@@ -6,15 +6,12 @@
 namespace esphome {
 namespace es8311 {
 
-class ES8311Component : public audio_dac::AudioDAC,  // Héritage exact
-                        public Component,
-                        public i2c::I2CDevice {
+class ES8311Component : public audio_dac::AudioDAC, public i2c::I2CDevice, public Component {
  public:
   void setup() override;
-  void start() override;  // Obligatoire
-  void stop() override;   // Obligatoire
-  void write(const uint8_t *data, size_t len) override;  // Obligatoire
-
+  void start() override;
+  void stop() override;
+  void write(const uint8_t *data, size_t len) override;
   void set_sample_rate(uint32_t sample_rate);
 
  protected:
