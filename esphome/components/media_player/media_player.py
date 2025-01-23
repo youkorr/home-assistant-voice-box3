@@ -3,8 +3,11 @@ import esphome.config_validation as cv
 from esphome.components import media_player, i2s_audio
 from esphome.const import CONF_ID, CONF_I2S_AUDIO_ID
 
+CODEOWNERS = ["@youkorr"]
 DEPENDENCIES = ['i2s_audio']
 AUTO_LOAD = ['media_player']
+
+CONF_CUSTOM_AUDIO_MEDIA_PLAYER = 'custom_audio'
 
 custom_audio_ns = cg.esphome_ns.namespace('custom_audio')
 MediaPlayer = custom_audio_ns.class_(
@@ -16,7 +19,7 @@ MediaPlayer = custom_audio_ns.class_(
 
 CONFIG_SCHEMA = cv.platform_schema(
     media_player.MEDIA_PLAYER_PLATFORM_SCHEMA.extend({
-        cv.GenerateID(): cv.declare_id(CustomAudioMediaPlayer),
+        cv.GenerateID(): cv.declare_id(MediaPlayer),
         cv.Required(CONF_I2S_AUDIO_ID): cv.use_id(i2s_audio.I2SAudioOutput),
     }).extend(cv.COMPONENT_SCHEMA)
 )
