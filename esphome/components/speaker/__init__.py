@@ -8,7 +8,7 @@ from esphome.core import CORE
 from esphome.coroutine import coroutine_with_priority
 
 AUTO_LOAD = ["audio"]
-CODEOWNERS = ["@jesserockz", "@kahrendt"]
+CODEOWNERS = ["@youkorr"]
 
 IS_PLATFORM_COMPONENT = True
 
