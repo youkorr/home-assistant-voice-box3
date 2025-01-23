@@ -7,7 +7,7 @@ DEPENDENCIES = ['i2s_audio']
 AUTO_LOAD = ['media_player']
 
 custom_audio_ns = cg.esphome_ns.namespace('custom_audio')
-CustomAudioMediaPlayer = custom_audio_ns.class_(
+MediaPlayer = custom_audio_ns.class_(
     'MediaPlayer', 
     media_player.MediaPlayer, 
     cg.Component,
