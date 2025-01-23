@@ -4,7 +4,7 @@ from esphome.components.audio_dac import AudioDac
 import esphome.config_validation as cv
 from esphome.const import CONF_BITS_PER_SAMPLE, CONF_ID, CONF_MIC_GAIN, CONF_SAMPLE_RATE
 
-CODEOWNERS = ["@kroimon", "@kahrendt"]
+CODEOWNERS = ["@youkorr"]
 DEPENDENCIES = ["i2c"]
 
 es8311_ns = cg.esphome_ns.namespace("es8311")
