@@ -3,7 +3,7 @@
 namespace esphome {
 namespace custom_audio {
 
-void CustomAudioMediaPlayer::setup() {
+void MediaPlayer::setup() {
   ESP_LOGD("custom_audio", "Initialisation du lecteur audio");
   // Initialiser le hardware audio ici
 }
@@ -19,7 +19,7 @@ media_player::MediaPlayerTraits CustomAudioMediaPlayer::get_traits() {
   return traits;
 }
 
-void CustomAudioMediaPlayer::control(const media_player::MediaPlayerCall &call) {
+void MediaPlayer::control(const media_player::MediaPlayerCall &call) {
   if (call.get_media_url().has_value()) {
     std::string url = call.get_media_url().value();
     ESP_LOGD("custom_audio", "Lecture de: %s", url.c_str());
