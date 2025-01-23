@@ -3,21 +3,21 @@
 namespace esphome {
 namespace custom_audio {
 
-void CustomAudioMediaPlayer::setup() {
+void MediaPlayer::setup() {
   // Initialisation du hardware audio
 }
 
-void CustomAudioMediaPlayer::loop() {
+void MediaPlayer::loop() {
   // Gestion du flux audio
 }
 
-media_player::MediaPlayerTraits CustomAudioMediaPlayer::get_traits() {
+media_player::MediaPlayerTraits MediaPlayer::get_traits() {
   auto traits = media_player::MediaPlayerTraits();
   traits.set_supports_pause(true);
   return traits;
 }
 
-void CustomAudioMediaPlayer::control(const media_player::MediaPlayerCall &call) {
+void MediaPlayer::control(const media_player::MediaPlayerCall &call) {
   // Implémentation des commandes
   if (call.get_media_url().has_value()) {
     // Gestion de la lecture
