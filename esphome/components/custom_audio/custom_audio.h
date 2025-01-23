@@ -5,7 +5,7 @@
 namespace esphome {
 namespace custom_audio {
 
-class CustomAudioMediaPlayer : public Component, 
+class MediaPlayer : public Component, 
                              public media_player::MediaPlayer,
                              public i2s_audio::I2SAudioOutput {
  public:
