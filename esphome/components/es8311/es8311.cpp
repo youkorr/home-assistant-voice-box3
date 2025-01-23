@@ -1,3 +1,6 @@
+#include "es8311.h"
+#include "esp_log.h"  // Ajoutez cette ligne pour inclure les macros de logging
+
 static const char *const TAG = "es8311";
 
 void ES8311Component::write_register(uint8_t reg, uint8_t value) {
