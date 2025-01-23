@@ -1,4 +1,4 @@
-#include "custom_audio_media_player.h"
+#include "media_player.h"
 
 namespace esphome {
 namespace custom_audio {
@@ -8,7 +8,7 @@ void MediaPlayer::setup() {
   // Initialiser le hardware audio ici
 }
 
-void CustomAudioMediaPlayer::loop() {
+void MediaPlayer::loop() {
   // Gérer le flux audio en continu
 }
 
