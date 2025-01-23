@@ -9,8 +9,8 @@ AUTO_LOAD = ['media_player']
 # Namespace DOIT correspondre au nom du composant
 custom_audio_ns = cg.esphome_ns.namespace('custom_audio')
 
-CustomAudioMediaPlayer = custom_audio_ns.class_(
-    'CustomAudioMediaPlayer',
+MediaPlayer = custom_audio_ns.class_(
+    'MediaPlayer',
     media_player.MediaPlayer,
     cg.Component,
     i2s_audio.I2SAudioOutput
