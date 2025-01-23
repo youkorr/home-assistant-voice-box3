@@ -1,3 +1,7 @@
-from .media_player import *
+from esphome import pins
+from esphome.components.media_player import MediaPlayer, MediaPlayerTraits
 
-DOMAIN = "custom_audio"  # Nécessaire pour lier la plateforme
+# Lien entre Python et C++
+CODEOWNERS = ["@youkorr"]
+DEPENDENCIES = ["custom_audio"]
+IS_PLATFORM_COMPONENT = True
