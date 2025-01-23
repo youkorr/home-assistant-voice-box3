@@ -1,8 +1,5 @@
 #include "es7210.h"
 #include "es7210_const.h"
-#include "esphome/core/hal.h"
-#include "esphome/core/log.h"
-#include <cinttypes>
 
 namespace esphome {
 namespace es7210 {
