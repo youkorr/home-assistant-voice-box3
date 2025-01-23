@@ -12,7 +12,7 @@ void MediaPlayer::loop() {
   // Gérer le flux audio en continu
 }
 
-media_player::MediaPlayerTraits CustomAudioMediaPlayer::get_traits() {
+media_player::MediaPlayerTraits MediaPlayer::get_traits() {
   auto traits = media_player::MediaPlayerTraits();
   traits.set_supports_pause(false);
   traits.set_supports_volume_set(false);
