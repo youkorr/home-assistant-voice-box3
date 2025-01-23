@@ -1,22 +1,25 @@
-#pragma once
-#include "esphome.h"
-#include "esphome/components/audio_dac/audio_dac.h"
-#include "esphome/components/i2c/i2c.h"
+#include "es8311.h"
+#include "esphome/core/log.h"
 
-namespace esphome {
-namespace es8311 {
+static const char *const TAG = "es8311";
 
-class ES8311Component : public audio_dac::AudioDAC, public i2c::I2CDevice, public Component {
- public:
-  void setup() override;
-  void start() override;
-  void stop() override;
-  void write(const uint8_t *data, size_t len) override;
-  void set_sample_rate(uint32_t sample_rate);
+void ES8311Component::write_register(uint8_t reg, uint8_t value) {
+  if (!this->write_byte(reg, value)) {  // Assurez-vous que write_byte est disponible
+    ESP_LOGE(TAG, "Error writing register 0x%02X", reg);
+  }
+}
 
- protected:
-  void write_register(uint8_t reg, uint8_t value);
-};
+void ES8311Component::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up ES8311...");
+  write_register(0x00, 0x80);
+}
 
-}  // namespace es8311
-}  // namespace esphome
+void ES8311Component::start() {
+  ESP_LOGD(TAG, "Starting ES8311");
+  write_register(0x03, 0x01);
+}
+
+void ES8311Component::stop() {
+  ESP_LOGD(TAG, "Stopping ES8311");
+  write_register(0x03, 0x00);
+}
