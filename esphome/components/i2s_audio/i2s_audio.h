@@ -36,20 +36,24 @@ class I2SAudioOut : public I2SAudioBase {};
 class I2SAudioComponent : public Component {
  public:
   void setup() override;
+  void write(const uint8_t *data, size_t len);
+  void read(uint8_t *data, size_t len);
 
   i2s_pin_config_t get_pin_config() const {
     return {
         .mck_io_num = this->mclk_pin_,
         .bck_io_num = this->bclk_pin_,
         .ws_io_num = this->lrclk_pin_,
-        .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_PIN_NO_CHANGE,
+        .data_out_num = this->dout_pin_,
+        .data_in_num = this->din_pin_,
     };
   }
 
   void set_mclk_pin(int pin) { this->mclk_pin_ = pin; }
   void set_bclk_pin(int pin) { this->bclk_pin_ = pin; }
   void set_lrclk_pin(int pin) { this->lrclk_pin_ = pin; }
+  void set_dout_pin(int pin) { this->dout_pin_ = pin; }
+  void set_din_pin(int pin) { this->din_pin_ = pin; }
 
   void lock() { this->lock_.lock(); }
   bool try_lock() { return this->lock_.try_lock(); }
@@ -66,6 +70,8 @@ class I2SAudioComponent : public Component {
   int mclk_pin_{I2S_PIN_NO_CHANGE};
   int bclk_pin_{I2S_PIN_NO_CHANGE};
   int lrclk_pin_;
+  int dout_pin_{I2S_PIN_NO_CHANGE};
+  int din_pin_{I2S_PIN_NO_CHANGE};
   i2s_port_t port_{};
 };
 
