@@ -1,23 +1,22 @@
 #pragma once
 
-#include "esphome/core/defines.h"
+#include "esphome/components/audio_dac/audio_dac.h"
+#include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 
 namespace esphome {
-namespace audio_dac {
+namespace es8311 {
 
-class AudioDac {
+class ES8311Component : public audio_dac::AudioDAC, public Component {
  public:
-  virtual bool set_mute_off() = 0;
-  virtual bool set_mute_on() = 0;
-  virtual bool set_volume(float volume) = 0;
-
-  virtual bool is_muted() = 0;
-  virtual float volume() = 0;
+  void setup() override;
+  void start() override;
+  void stop() override;
+  void write(const uint8_t *data, size_t len) override;
 
  protected:
-  bool is_muted_{false};
+  void write_register(uint8_t reg, uint8_t value);
 };
 
-}  // namespace aic3204
+}  // namespace es8311
 }  // namespace esphome
