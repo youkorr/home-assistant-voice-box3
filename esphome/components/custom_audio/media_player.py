@@ -3,12 +3,12 @@ import esphome.config_validation as cv
 from esphome.components import media_player, i2s_audio
 from esphome.const import CONF_ID, CONF_I2S_AUDIO_ID
 
-DEPENDENCIES = ["i2s_audio"]  # Ajout de la dépendance I2S
-AUTO_LOAD = ["media_player"]
+DEPENDENCIES = ['i2s_audio']
+AUTO_LOAD = ['media_player']
 
-custom_audio_ns = cg.esphome_ns.namespace("custom_audio")
+custom_audio_ns = cg.esphome_ns.namespace('custom_audio')
 CustomAudioMediaPlayer = custom_audio_ns.class_(
-    "CustomAudioMediaPlayer", 
+    'CustomAudioMediaPlayer', 
     media_player.MediaPlayer, 
     cg.Component,
     i2s_audio.I2SAudioOutput
@@ -24,6 +24,6 @@ def to_code(config):
     yield cg.register_component(var, config)
     yield media_player.register_media_player(var, config)
     
-    # Lier la configuration I2S
+    # Lier la sortie I2S
     i2s = yield cg.get_variable(config[CONF_I2S_AUDIO_ID])
     cg.add(var.set_i2s_output(i2s))
