@@ -14,11 +14,10 @@ CustomAudioMediaPlayer = custom_audio_ns.class_(
     i2s_audio.I2SAudioOutput
 )
 
-# Correction cruciale ici ▼
-CONFIG_SCHEMA = cv.platform_schema(  # <-- Ajout de platform_schema
+CONFIG_SCHEMA = cv.platform_schema(
     media_player.MEDIA_PLAYER_PLATFORM_SCHEMA.extend({
         cv.GenerateID(): cv.declare_id(CustomAudioMediaPlayer),
-        cv.Required(CONF_I2S_AUDIO_ID): cv.use_id(i2s_audio.I2SAudioOutput),
+        cv.Required(CONF_I2S_AUDIO_ID): cv.use_id(i2s_audio.I2SAudioOutput)
     }).extend(cv.COMPONENT_SCHEMA)
 )
 
@@ -26,7 +25,5 @@ def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     yield cg.register_component(var, config)
     yield media_player.register_media_player(var, config)
-    
-    # Lien I2S
     i2s = yield cg.get_variable(config[CONF_I2S_AUDIO_ID])
     cg.add(var.set_i2s_output(i2s))
