@@ -1,10 +1,11 @@
 #pragma once
+#include "esphome.h"
 #include "esphome/components/media_player/media_player.h"
 
 namespace esphome {
 namespace custom_audio {
 
-class CustomAudioMediaPlayer : public media_player::MediaPlayer {
+class CustomAudioMediaPlayer : public media_player::MediaPlayer, public Component {
  public:
   void setup() override;
   void control(const media_player::MediaPlayerCall &call) override;
