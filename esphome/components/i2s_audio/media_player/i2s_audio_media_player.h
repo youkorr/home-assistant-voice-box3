@@ -1,78 +1,130 @@
 #pragma once
 
-#ifdef USE_ESP32
-
-#include "../i2s_audio.h"
-
-#include "driver/i2s.h"
-#include "esp_log.h"
-
-#include "esphome/components/media_player/media_player.h"
-#include "esphome/core/component.h"
-#include "esphome/core/gpio.h"
+#include "esphome/core/entity_base.h"
 #include "esphome/core/helpers.h"
 
 namespace esphome {
-namespace i2s_audio {
+namespace media_player {
 
-enum I2SState : uint8_t {
-  I2S_STATE_STOPPED = 0,
-  I2S_STATE_STARTING,
-  I2S_STATE_RUNNING,
-  I2S_STATE_STOPPING,
+enum MediaPlayerState : uint8_t {
+  MEDIA_PLAYER_STATE_NONE = 0,
+  MEDIA_PLAYER_STATE_IDLE = 1,
+  MEDIA_PLAYER_STATE_PLAYING = 2,
+  MEDIA_PLAYER_STATE_PAUSED = 3,
+  MEDIA_PLAYER_STATE_ANNOUNCING = 4
+};
+const char *media_player_state_to_string(MediaPlayerState state);
+
+enum MediaPlayerCommand : uint8_t {
+  MEDIA_PLAYER_COMMAND_PLAY = 0,
+  MEDIA_PLAYER_COMMAND_PAUSE = 1,
+  MEDIA_PLAYER_COMMAND_STOP = 2,
+  MEDIA_PLAYER_COMMAND_MUTE = 3,
+  MEDIA_PLAYER_COMMAND_UNMUTE = 4,
+  MEDIA_PLAYER_COMMAND_TOGGLE = 5,
+  MEDIA_PLAYER_COMMAND_VOLUME_UP = 6,
+  MEDIA_PLAYER_COMMAND_VOLUME_DOWN = 7,
+};
+const char *media_player_command_to_string(MediaPlayerCommand command);
+
+enum class MediaFileType : uint8_t {
+  NONE = 0,
+  WAV,
+  MP3,
+  FLAC,
+};
+const char *media_player_file_type_to_string(MediaFileType file_type);
+
+enum class MediaPlayerFormatPurpose : uint8_t {
+  PURPOSE_DEFAULT = 0,
+  PURPOSE_ANNOUNCEMENT = 1,
 };
 
-class I2SAudioMediaPlayer : public Component, public Parented<I2SAudioComponent>, public media_player::MediaPlayer {
+struct MediaPlayerSupportedFormat {
+  std::string format;
+  uint32_t sample_rate;
+  uint32_t num_channels;
+  MediaPlayerFormatPurpose purpose;
+  uint32_t sample_bytes;
+};
+
+struct MediaFile {
+  const uint8_t *data;
+  size_t length;
+  MediaFileType file_type;
+};
+
+class MediaPlayer;
+
+class MediaPlayerTraits {
  public:
-  void setup() override;
-  float get_setup_priority() const override { return esphome::setup_priority::LATE; }
+  MediaPlayerTraits() = default;
 
-  void loop() override;
+  void set_supports_pause(bool supports_pause) { this->supports_pause_ = supports_pause; }
 
-  void dump_config() override;
+  bool get_supports_pause() const { return this->supports_pause_; }
 
-  void set_dout_pin(uint8_t pin) { this->dout_pin_ = pin; }
-  void set_mute_pin(GPIOPin *mute_pin) { this->mute_pin_ = mute_pin; }
-  void set_external_dac_channels(uint8_t channels) { this->external_dac_channels_ = channels; }
-
-  void set_i2s_comm_fmt_lsb(bool lsb) { this->i2s_comm_fmt_lsb_ = lsb; }
-
-  media_player::MediaPlayerTraits get_traits() override;
-
-  bool is_muted() const override { return this->muted_; }
-
-  void start();
-  void stop();
+  std::vector<MediaPlayerSupportedFormat> &get_supported_formats() { return this->supported_formats_; }
 
  protected:
-  void control(const media_player::MediaPlayerCall &call) override;
-
-  void mute_();
-  void unmute_();
-  void set_volume_(float volume, bool publish = true);
-
-  void start_();
-  void stop_();
-  void play_();
-
-  I2SState i2s_state_{I2S_STATE_STOPPED};
-
-  uint8_t dout_pin_{0};
-
-  GPIOPin *mute_pin_{nullptr};
-  bool muted_{false};
-  float unmuted_volume_{0};
-
-  uint8_t external_dac_channels_;
-  bool i2s_comm_fmt_lsb_;
-
-  HighFrequencyLoopRequester high_freq_;
-
-  optional<std::string> current_url_{};
-  bool is_announcement_{false};
+  bool supports_pause_{false};
+  std::vector<MediaPlayerSupportedFormat> supported_formats_{};
 };
 
-}  // namespace i2s_audio
-}  // namespace esphome
+class MediaPlayerCall {
+ public:
+  MediaPlayerCall(MediaPlayer *parent) : parent_(parent) {}
 
-#endif  // USE_ESP32
+  MediaPlayerCall &set_command(MediaPlayerCommand command);
+  MediaPlayerCall &set_command(optional<MediaPlayerCommand> command);
+  MediaPlayerCall &set_command(const std::string &command);
+
+  MediaPlayerCall &set_media_url(const std::string &url);
+  MediaPlayerCall &set_local_media_file(MediaFile *media_file);
+
+  MediaPlayerCall &set_volume(float volume);
+  MediaPlayerCall &set_announcement(bool announce);
+
+  void perform();
+
+  const optional<MediaPlayerCommand> &get_command() const { return command_; }
+  const optional<std::string> &get_media_url() const { return media_url_; }
+  const optional<float> &get_volume() const { return volume_; }
+  const optional<bool> &get_announcement() const { return announcement_; }
+  const optional<MediaFile *> &get_local_media_file() const { return media_file_; }
+
+ protected:
+  void validate_();
+  MediaPlayer *const parent_;
+  optional<MediaPlayerCommand> command_;
+  optional<std::string> media_url_;
+  optional<float> volume_;
+  optional<bool> announcement_;
+  optional<MediaFile *> media_file_;
+};
+
+class MediaPlayer : public EntityBase {
+ public:
+  MediaPlayerState state{MEDIA_PLAYER_STATE_NONE};
+  float volume{1.0f};
+
+  MediaPlayerCall make_call() { return MediaPlayerCall(this); }
+
+  void publish_state();
+
+  void add_on_state_callback(std::function<void()> &&callback);
+
+  virtual bool is_muted() const { return false; }
+
+  virtual MediaPlayerTraits get_traits() = 0;
+
+ protected:
+  friend MediaPlayerCall;
+
+  virtual void control(const MediaPlayerCall &call) = 0;
+
+  CallbackManager<void()> state_callback_{};
+};
+
+}  // namespace media_player
+}  // namespace esphome
