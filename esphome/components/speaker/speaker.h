@@ -88,7 +88,7 @@ class Speaker {
   bool get_mute_state() { return this->mute_state_; }
 
 #ifdef USE_AUDIO_DAC
-  void set_audio_dac(audio_dac::AudioDac *audio_dac) { this->audio_dac_ = audio_dac; }
+  void set_audio_dac(audio_dac::AudioDAC *audio_dac) { this->audio_dac_ = audio_dac; }
 #endif
 
   void set_audio_stream_info(const audio::AudioStreamInfo &audio_stream_info) {
@@ -102,9 +102,12 @@ class Speaker {
   bool mute_state_{false};
 
 #ifdef USE_AUDIO_DAC
-  audio_dac::AudioDac *audio_dac_{nullptr};
+  audio_dac::AudioDAC *audio_dac_{nullptr};
 #endif
 };
+
+}  // namespace speaker
+}  // namespace esphome
 
 }  // namespace speaker
 }  // namespace esphome
