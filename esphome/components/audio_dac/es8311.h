@@ -1,6 +1,6 @@
 #pragma once
 
-#include "esphome/components/audio_dac/audio_dac.h"
+#include "esphome/components/audio_dac/audio_dac.h" // Assure-toi que ce fichier existe
 #include "esphome/components/i2c/i2c.h"
 #include "esphome/core/component.h"
 
