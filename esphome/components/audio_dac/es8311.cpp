@@ -14,7 +14,12 @@ void ES8311Component::write_register(uint8_t reg, uint8_t value) {
 
 void ES8311Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ES8311...");
-  // Initialization code
+  if (!this->i2c_device_->probe()) {
+    ESP_LOGE(TAG, "ES8311 not found on I2C bus!");
+    this->mark_failed();
+    return;
+  }
+  // Additional initialization code
 }
 
 void ES8311Component::start() {
