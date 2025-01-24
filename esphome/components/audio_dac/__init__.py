@@ -5,9 +5,6 @@ from esphome.automation import maybe_simple_id
 from esphome.core import coroutine_with_priority
 from esphome.const import CONF_ID, CONF_VOLUME
 
-# Ajoutez ces imports supplémentaires
-from esphome.components import speaker
-
 CODEOWNERS = ["@youkorr"]
 IS_PLATFORM_COMPONENT = True
 
@@ -50,12 +47,15 @@ async def audio_dac_set_volume_to_code(config, action_id, template_arg, args):
 
     return var
 
-# Ajoutez cette section pour enregistrer le composant i2s_audio_speaker
-i2s_audio_speaker_ns = cg.esphome_ns.namespace("i2s_audio_speaker")
-I2SAudioSpeaker = i2s_audio_speaker_ns.class_("I2SAudioSpeaker", speaker.Speaker, cg.Component)
+# Utilisez un import différé pour éviter la dépendance circulaire
+def register_speaker_class():
+    from esphome.components import speaker
+    i2s_audio_speaker_ns = cg.esphome_ns.namespace("i2s_audio_speaker")
+    I2SAudioSpeaker = i2s_audio_speaker_ns.class_("I2SAudioSpeaker", speaker.Speaker, cg.Component)
+    return I2SAudioSpeaker
 
-CONFIG_SCHEMA = speaker.SPEAKER_SCHEMA.extend({
-    cv.GenerateID(): cv.declare_id(I2SAudioSpeaker),
+CONFIG_SCHEMA = cv.Schema({
+    cv.GenerateID(): cv.declare_id(register_speaker_class()),
     cv.Required("dout_pin"): cv.int_,
     cv.Optional("sample_rate", default=16000): cv.int_,
     cv.Optional("bits_per_sample", default=16): cv.int_,
@@ -76,4 +76,4 @@ async def to_code_i2s_audio_speaker(config):
 async def to_code(config):
     cg.add_define("USE_AUDIO_DAC")
     cg.add_global(audio_dac_ns.using)
-    await to_code_i2s_audio_speaker(config)  # Ajoutez cette ligne
+    await to_code_i2s_audio_speaker(config)
