@@ -24,7 +24,7 @@ void I2SAudioComponent::setup() {
   }
 
   this->port_ = next_port_num;
-  next_port_num = (i2s_port_t) (next_port_num + 1);
+  next_port_num = (i2s_port_t)(next_port_num + 1);
 
   ESP_LOGCONFIG(TAG, "Setting up I2S Audio...");
 
@@ -40,6 +40,14 @@ void I2SAudioComponent::setup() {
       .dma_buf_len = 64,                                                  // Taille de chaque buffer DMA
       .use_apll = false,                                                  // Pas de PLL audio
   };
+
+  // Vérifier que toutes les broches nécessaires sont configurées
+  if (this->bclk_pin_ == I2S_PIN_NO_CHANGE || this->lrclk_pin_ == I2S_PIN_NO_CHANGE ||
+      (this->dout_pin_ == I2S_PIN_NO_CHANGE && this->din_pin_ == I2S_PIN_NO_CHANGE)) {
+    ESP_LOGE(TAG, "Pins for I2S are not properly configured!");
+    this->mark_failed();
+    return;
+  }
 
   // Configuration des broches I2S
   i2s_pin_config_t pin_config = {
@@ -89,3 +97,4 @@ void I2SAudioComponent::read(uint8_t *data, size_t len) {
 }  // namespace esphome
 
 #endif  // USE_ESP32
+
