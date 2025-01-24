@@ -1,112 +1,209 @@
+from esphome import automation
+from esphome.automation import maybe_simple_id
 import esphome.codegen as cg
-from esphome.components import media_player, esp32
 import esphome.config_validation as cv
-
-from esphome import pins
-
-from esphome.const import CONF_ID, CONF_MODE
-
-from .. import (
-    i2s_audio_ns,
-    I2SAudioComponent,
-    I2SAudioOut,
-    CONF_I2S_AUDIO_ID,
-    CONF_I2S_DOUT_PIN,
-    CONF_LEFT,
-    CONF_RIGHT,
-    CONF_MONO,
-    CONF_STEREO,
+from esphome.const import (
+    CONF_ID,
+    CONF_ON_IDLE,
+    CONF_ON_STATE,
+    CONF_TRIGGER_ID,
+    CONF_VOLUME,
 )
+from esphome.core import CORE
+from esphome.coroutine import coroutine_with_priority
+from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@youkorr"]
-DEPENDENCIES = ["i2s_audio"]
 
-I2SAudioMediaPlayer = i2s_audio_ns.class_(
-    "I2SAudioMediaPlayer", cg.Component, media_player.MediaPlayer, I2SAudioOut
-)
+IS_PLATFORM_COMPONENT = True
 
-i2s_dac_mode_t = cg.global_ns.enum("i2s_dac_mode_t")
+media_player_ns = cg.esphome_ns.namespace("media_player")
 
-
-CONF_MUTE_PIN = "mute_pin"
-CONF_AUDIO_ID = "audio_id"
-CONF_DAC_TYPE = "dac_type"
-CONF_I2S_COMM_FMT = "i2s_comm_fmt"
-
-INTERNAL_DAC_OPTIONS = {
-    CONF_LEFT: i2s_dac_mode_t.I2S_DAC_CHANNEL_LEFT_EN,
-    CONF_RIGHT: i2s_dac_mode_t.I2S_DAC_CHANNEL_RIGHT_EN,
-    CONF_STEREO: i2s_dac_mode_t.I2S_DAC_CHANNEL_BOTH_EN,
+MediaPlayer = media_player_ns.class_("MediaPlayer")
+MediaFile = media_player_ns.struct("MediaFile")
+MediaFileType = media_player_ns.enum("MediaFileType", is_class=True)
+MEDIA_FILE_TYPE_ENUM = {
+    "NONE": MediaFileType.NONE,
+    "WAV": MediaFileType.WAV,
+    "MP3": MediaFileType.MP3,
+    "FLAC": MediaFileType.FLAC,
 }
 
-EXTERNAL_DAC_OPTIONS = [CONF_MONO, CONF_STEREO]
 
-NO_INTERNAL_DAC_VARIANTS = [esp32.const.VARIANT_ESP32S2]
-
-I2C_COMM_FMT_OPTIONS = ["lsb", "msb"]
-
-
-def validate_esp32_variant(config):
-    if config[CONF_DAC_TYPE] != "internal":
-        return config
-    variant = esp32.get_esp32_variant()
-    if variant in NO_INTERNAL_DAC_VARIANTS:
-        raise cv.Invalid(f"{variant} does not have an internal DAC")
-    return config
-
-
-CONFIG_SCHEMA = cv.All(
-    cv.typed_schema(
-        {
-            "internal": media_player.MEDIA_PLAYER_SCHEMA.extend(
-                {
-                    cv.GenerateID(): cv.declare_id(I2SAudioMediaPlayer),
-                    cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
-                    cv.Required(CONF_MODE): cv.enum(INTERNAL_DAC_OPTIONS, lower=True),
-                }
-            ).extend(cv.COMPONENT_SCHEMA),
-            "external": media_player.MEDIA_PLAYER_SCHEMA.extend(
-                {
-                    cv.GenerateID(): cv.declare_id(I2SAudioMediaPlayer),
-                    cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
-                    cv.Required(
-                        CONF_I2S_DOUT_PIN
-                    ): pins.internal_gpio_output_pin_number,
-                    cv.Optional(CONF_MUTE_PIN): pins.gpio_output_pin_schema,
-                    cv.Optional(CONF_MODE, default="mono"): cv.one_of(
-                        *EXTERNAL_DAC_OPTIONS, lower=True
-                    ),
-                    cv.Optional(CONF_I2S_COMM_FMT, default="msb"): cv.one_of(
-                        *I2C_COMM_FMT_OPTIONS, lower=True
-                    ),
-                }
-            ).extend(cv.COMPONENT_SCHEMA),
-        },
-        key=CONF_DAC_TYPE,
-    ),
-    cv.only_with_arduino,
-    validate_esp32_variant,
+PlayAction = media_player_ns.class_(
+    "PlayAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+PlayMediaAction = media_player_ns.class_(
+    "PlayMediaAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+PlayLocalMediaAction = media_player_ns.class_(
+    "PlayLocalMediaAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+ToggleAction = media_player_ns.class_(
+    "ToggleAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+PauseAction = media_player_ns.class_(
+    "PauseAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+StopAction = media_player_ns.class_(
+    "StopAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+VolumeUpAction = media_player_ns.class_(
+    "VolumeUpAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+VolumeDownAction = media_player_ns.class_(
+    "VolumeDownAction", automation.Action, cg.Parented.template(MediaPlayer)
+)
+VolumeSetAction = media_player_ns.class_(
+    "VolumeSetAction", automation.Action, cg.Parented.template(MediaPlayer)
 )
 
 
+CONF_ON_PLAY = "on_play"
+CONF_ON_PAUSE = "on_pause"
+CONF_ON_ANNOUNCEMENT = "on_announcement"
+CONF_MEDIA_URL = "media_url"
+
+StateTrigger = media_player_ns.class_("StateTrigger", automation.Trigger.template())
+IdleTrigger = media_player_ns.class_("IdleTrigger", automation.Trigger.template())
+PlayTrigger = media_player_ns.class_("PlayTrigger", automation.Trigger.template())
+PauseTrigger = media_player_ns.class_("PauseTrigger", automation.Trigger.template())
+AnnoucementTrigger = media_player_ns.class_(
+    "AnnouncementTrigger", automation.Trigger.template()
+)
+IsIdleCondition = media_player_ns.class_("IsIdleCondition", automation.Condition)
+IsPausedCondition = media_player_ns.class_("IsPausedCondition", automation.Condition)
+IsPlayingCondition = media_player_ns.class_("IsPlayingCondition", automation.Condition)
+
+
+async def setup_media_player_core_(var, config):
+    await setup_entity(var, config)
+    for conf in config.get(CONF_ON_STATE, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+    for conf in config.get(CONF_ON_IDLE, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+    for conf in config.get(CONF_ON_PLAY, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+    for conf in config.get(CONF_ON_PAUSE, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+    for conf in config.get(CONF_ON_ANNOUNCEMENT, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+
+
+async def register_media_player(var, config):
+    if not CORE.has_id(config[CONF_ID]):
+        var = cg.Pvariable(config[CONF_ID], var)
+    cg.add(cg.App.register_media_player(var))
+    await setup_media_player_core_(var, config)
+
+
+MEDIA_PLAYER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
+    {
+        cv.Optional(CONF_ON_STATE): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StateTrigger),
+            }
+        ),
+        cv.Optional(CONF_ON_IDLE): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(IdleTrigger),
+            }
+        ),
+        cv.Optional(CONF_ON_PLAY): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PlayTrigger),
+            }
+        ),
+        cv.Optional(CONF_ON_PAUSE): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
+            }
+        ),
+        cv.Optional(CONF_ON_ANNOUNCEMENT): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(AnnoucementTrigger),
+            }
+        ),
+    }
+)
+
+
+MEDIA_PLAYER_ACTION_SCHEMA = maybe_simple_id({cv.GenerateID(): cv.use_id(MediaPlayer)})
+
+
+@automation.register_action(
+    "media_player.play_media",
+    PlayMediaAction,
+    cv.maybe_simple_value(
+        {
+            cv.GenerateID(): cv.use_id(MediaPlayer),
+            cv.Required(CONF_MEDIA_URL): cv.templatable(cv.url),
+        },
+        key=CONF_MEDIA_URL,
+    ),
+)
+async def media_player_play_media_action(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    media_url = await cg.templatable(config[CONF_MEDIA_URL], args, cg.std_string)
+    cg.add(var.set_media_url(media_url))
+    return var
+
+
+@automation.register_action("media_player.play", PlayAction, MEDIA_PLAYER_ACTION_SCHEMA)
+@automation.register_action(
+    "media_player.toggle", ToggleAction, MEDIA_PLAYER_ACTION_SCHEMA
+)
+@automation.register_action(
+    "media_player.pause", PauseAction, MEDIA_PLAYER_ACTION_SCHEMA
+)
+@automation.register_action("media_player.stop", StopAction, MEDIA_PLAYER_ACTION_SCHEMA)
+@automation.register_action(
+    "media_player.volume_up", VolumeUpAction, MEDIA_PLAYER_ACTION_SCHEMA
+)
+@automation.register_action(
+    "media_player.volume_down", VolumeDownAction, MEDIA_PLAYER_ACTION_SCHEMA
+)
+@automation.register_condition(
+    "media_player.is_idle", IsIdleCondition, MEDIA_PLAYER_ACTION_SCHEMA
+)
+@automation.register_condition(
+    "media_player.is_paused", IsPausedCondition, MEDIA_PLAYER_ACTION_SCHEMA
+)
+@automation.register_condition(
+    "media_player.is_playing", IsPlayingCondition, MEDIA_PLAYER_ACTION_SCHEMA
+)
+async def media_player_action(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    return var
+
+
+@automation.register_action(
+    "media_player.volume_set",
+    VolumeSetAction,
+    cv.maybe_simple_value(
+        {
+            cv.GenerateID(): cv.use_id(MediaPlayer),
+            cv.Required(CONF_VOLUME): cv.templatable(cv.percentage),
+        },
+        key=CONF_VOLUME,
+    ),
+)
+async def media_player_volume_set_action(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    volume = await cg.templatable(config[CONF_VOLUME], args, float)
+    cg.add(var.set_volume(volume))
+    return var
+
+
+@coroutine_with_priority(100.0)
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
-    await media_player.register_media_player(var, config)
-
-    await cg.register_parented(var, config[CONF_I2S_AUDIO_ID])
-
-    if config[CONF_DAC_TYPE] == "internal":
-        cg.add(var.set_internal_dac_mode(config[CONF_MODE]))
-    else:
-        cg.add(var.set_dout_pin(config[CONF_I2S_DOUT_PIN]))
-        if CONF_MUTE_PIN in config:
-            pin = await cg.gpio_pin_expression(config[CONF_MUTE_PIN])
-            cg.add(var.set_mute_pin(pin))
-        cg.add(var.set_external_dac_channels(2 if config[CONF_MODE] == "stereo" else 1))
-        cg.add(var.set_i2s_comm_fmt_lsb(config[CONF_I2S_COMM_FMT] == "lsb"))
-
-    cg.add_library("WiFiClientSecure", None)
-    cg.add_library("HTTPClient", None)
-    cg.add_library("esphome/ESP32-audioI2S", "2.0.7")
-    cg.add_build_flag("-DAUDIO_NO_SD_FS")
+    cg.add_global(media_player_ns.using)
+    cg.add_define("USE_MEDIA_PLAYER")
