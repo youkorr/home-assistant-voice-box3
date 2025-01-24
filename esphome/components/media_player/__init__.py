@@ -18,13 +18,13 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required("i2s_audio_id"): cv.use_id(i2s_audio.I2SAudio),
 }).extend(cv.COMPONENT_SCHEMA)
 
-# Fonction pour générer le code
+# Function to generate the code
 @coroutine_with_priority(100.0)
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     cg.add(var.set_name(config[CONF_NAME]))
     
-    # Lier i2s_audio au media_player
+    # Bind i2s_audio to media_player
     i2s_audio_var = await cg.get_variable(config["i2s_audio_id"])
     cg.add(var.set_i2s_audio(i2s_audio_var))
