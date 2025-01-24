@@ -35,6 +35,7 @@ CONF_MONO = "mono"
 CONF_LEFT = "left"
 CONF_RIGHT = "right"
 CONF_STEREO = "stereo"
+CONF_NUM_CHANNELS = "num_channels"
 
 i2s_audio_ns = cg.esphome_ns.namespace("i2s_audio")
 I2SAudioComponent = i2s_audio_ns.class_("I2SAudioComponent", cg.Component)
