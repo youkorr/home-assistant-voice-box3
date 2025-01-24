@@ -36,7 +36,7 @@ class Speaker {
   /// @return The number of bytes that were actually written to the speaker's internal buffer.
   virtual size_t play(const uint8_t *data, size_t length, TickType_t ticks_to_wait) {
     return this->play(data, length);
-  };
+  }
 #endif
 
   /// @brief Plays the provided audio data.
@@ -70,7 +70,8 @@ class Speaker {
       this->audio_dac_->set_volume(volume);
     }
 #endif
-  };
+  }
+
   float get_volume() { return this->volume_; }
 
   virtual void set_mute_state(bool mute_state) {
@@ -85,6 +86,7 @@ class Speaker {
     }
 #endif
   }
+
   bool get_mute_state() { return this->mute_state_; }
 
 #ifdef USE_AUDIO_DAC
@@ -105,9 +107,6 @@ class Speaker {
   audio_dac::AudioDAC *audio_dac_{nullptr};
 #endif
 };
-
-}  // namespace speaker
-}  // namespace esphome
 
 }  // namespace speaker
 }  // namespace esphome
