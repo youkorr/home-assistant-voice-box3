@@ -1,23 +1,26 @@
-#include "esphome.h"
-#include "esphome/components/i2c/i2c.h"
+#include "es8311.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace es8311 {
 
-class ES8311Component : public Component {
- public:
-  // Constructeur pour initialiser l'appareil I2C
-  explicit ES8311Component(i2c::I2CDevice *device) : device_(*device) {}
+static const char *const TAG = "es8311";
 
-  void setup() override;
-  void write_register(uint8_t reg, uint8_t value);
+void ES8311Component::write_register(uint8_t reg, uint8_t value) {
+  if (!this->get_device()->write_byte(reg, value)) { // Utilisation de get_device()
+    ESP_LOGE(TAG, "Erreur écriture registre 0x%02X", reg);
+  }
+}
 
-  // Méthode pour accéder à l'appareil I2C
-  i2c::I2CDevice *get_device() { return &this->device_; }
-
- protected:
-  i2c::I2CDevice device_; // Stocke l'appareil I2C
-};
+void ES8311Component::setup() {
+  ESP_LOGCONFIG(TAG, "Configuration ES8311...");
+  if (!this->get_device()->probe()) { // Utilisation de get_device()
+    ESP_LOGE(TAG, "ES8311 non trouvé sur le bus I2C !");
+    this->mark_failed();
+    return;
+  }
+  // ... (votre code d'initialisation)
+}
 
 }  // namespace es8311
 }  // namespace esphome
