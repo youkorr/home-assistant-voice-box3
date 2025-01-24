@@ -47,12 +47,15 @@ async def audio_dac_set_volume_to_code(config, action_id, template_arg, args):
 
     return var
 
-# Utilisez un import différé pour éviter la dépendance circulaire
+# Import différé pour éviter les importations circulaires
 def register_speaker_class():
-    from esphome.components import speaker
-    i2s_audio_speaker_ns = cg.esphome_ns.namespace("i2s_audio_speaker")
-    I2SAudioSpeaker = i2s_audio_speaker_ns.class_("I2SAudioSpeaker", speaker.Speaker, cg.Component)
-    return I2SAudioSpeaker
+    try:
+        from esphome.components import speaker
+        i2s_audio_speaker_ns = cg.esphome_ns.namespace("i2s_audio_speaker")
+        I2SAudioSpeaker = i2s_audio_speaker_ns.class_("I2SAudioSpeaker", speaker.Speaker, cg.Component)
+        return I2SAudioSpeaker
+    except ImportError:
+        raise ValueError("Failed to import speaker. Ensure that the speaker component is correctly loaded.")
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(register_speaker_class()),
@@ -65,7 +68,12 @@ CONFIG_SCHEMA = cv.Schema({
 async def to_code_i2s_audio_speaker(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    await speaker.register_speaker(var, config)
+
+    try:
+        from esphome.components import speaker
+        await speaker.register_speaker(var, config)
+    except ImportError:
+        raise ValueError("Failed to register speaker component.")
 
     cg.add(var.set_dout_pin(config["dout_pin"]))
     cg.add(var.set_sample_rate(config["sample_rate"]))
