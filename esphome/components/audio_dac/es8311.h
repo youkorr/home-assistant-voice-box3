@@ -1,21 +1,18 @@
 #pragma once
-#include "esphome.h"
+
 #include "esphome/components/audio_dac/audio_dac.h"
-#include "esphome/components/i2c/i2c.h"
+#include "esphome/core/component.h"
+#include "esphome/core/hal.h"
 
 namespace esphome {
 namespace es8311 {
 
-class ES8311Component : public audio_dac::AudioDAC,  // Héritage exact
-                        public Component,
-                        public i2c::I2CDevice {
+class ES8311Component : public audio_dac::AudioDAC, public Component {
  public:
   void setup() override;
-  void start() override;  // Obligatoire
-  void stop() override;   // Obligatoire
-  void write(const uint8_t *data, size_t len) override;  // Obligatoire
-
-  void set_sample_rate(uint32_t sample_rate);
+  void start() override;
+  void stop() override;
+  void write(const uint8_t *data, size_t len) override;
 
  protected:
   void write_register(uint8_t reg, uint8_t value);
