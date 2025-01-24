@@ -8,7 +8,7 @@ from esphome.core import CORE
 from esphome.coroutine import coroutine_with_priority
 
 
-CODEOWNERS = ["@jesserockz"]
+CODEOWNERS = ["@youkorr"]
 
 IS_PLATFORM_COMPONENT = True
 
