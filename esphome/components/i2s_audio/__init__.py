@@ -134,6 +134,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_I2S_LRCLK_PIN): pins.internal_gpio_output_pin_number,
         cv.Optional(CONF_I2S_BCLK_PIN): pins.internal_gpio_output_pin_number,
         cv.Optional(CONF_I2S_MCLK_PIN): pins.internal_gpio_output_pin_number,
+        cv.Optional(CONF_I2S_DOUT_PIN): pins.internal_gpio_output_pin_number,
+        cv.Optional(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
     }
 )
 
@@ -161,3 +163,7 @@ async def to_code(config):
         cg.add(var.set_bclk_pin(config[CONF_I2S_BCLK_PIN]))
     if CONF_I2S_MCLK_PIN in config:
         cg.add(var.set_mclk_pin(config[CONF_I2S_MCLK_PIN]))
+    if CONF_I2S_DOUT_PIN in config:
+        cg.add(var.set_dout_pin(config[CONF_I2S_DOUT_PIN]))
+    if CONF_I2S_DIN_PIN in config:
+        cg.add(var.set_din_pin(config[CONF_I2S_DIN_PIN]))
