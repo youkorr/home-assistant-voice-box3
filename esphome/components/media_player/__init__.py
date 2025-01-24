@@ -12,6 +12,7 @@ from esphome.const import (
 from esphome.core import CORE
 from esphome.coroutine import coroutine_with_priority
 from esphome.cpp_helpers import setup_entity
+from esphome.components import i2s_audio
 
 CODEOWNERS = ["@youkorr"]
 
@@ -28,7 +29,6 @@ MEDIA_FILE_TYPE_ENUM = {
     "MP3": MediaFileType.MP3,
     "FLAC": MediaFileType.FLAC,
 }
-
 
 PlayAction = media_player_ns.class_(
     "PlayAction", automation.Action, cg.Parented.template(MediaPlayer)
@@ -58,11 +58,11 @@ VolumeSetAction = media_player_ns.class_(
     "VolumeSetAction", automation.Action, cg.Parented.template(MediaPlayer)
 )
 
-
 CONF_ON_PLAY = "on_play"
 CONF_ON_PAUSE = "on_pause"
 CONF_ON_ANNOUNCEMENT = "on_announcement"
 CONF_MEDIA_URL = "media_url"
+CONF_I2S_AUDIO_ID = "i2s_audio_id"
 
 StateTrigger = media_player_ns.class_("StateTrigger", automation.Trigger.template())
 IdleTrigger = media_player_ns.class_("IdleTrigger", automation.Trigger.template())
@@ -75,9 +75,11 @@ IsIdleCondition = media_player_ns.class_("IsIdleCondition", automation.Condition
 IsPausedCondition = media_player_ns.class_("IsPausedCondition", automation.Condition)
 IsPlayingCondition = media_player_ns.class_("IsPlayingCondition", automation.Condition)
 
-
 async def setup_media_player_core_(var, config):
     await setup_entity(var, config)
+    i2s_audio_var = await cg.get_variable(config[CONF_I2S_AUDIO_ID])
+    cg.add(var.set_i2s_audio(i2s_audio_var))  # Liez i2s_audio à media_player
+
     for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
@@ -94,16 +96,15 @@ async def setup_media_player_core_(var, config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
 
-
 async def register_media_player(var, config):
     if not CORE.has_id(config[CONF_ID]):
         var = cg.Pvariable(config[CONF_ID], var)
     cg.add(cg.App.register_media_player(var))
     await setup_media_player_core_(var, config)
 
-
 MEDIA_PLAYER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     {
+        cv.Required(CONF_I2S_AUDIO_ID): cv.use_id(i2s_audio.I2SAudio),
         cv.Optional(CONF_ON_STATE): automation.validate_automation(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StateTrigger),
@@ -132,9 +133,7 @@ MEDIA_PLAYER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     }
 )
 
-
 MEDIA_PLAYER_ACTION_SCHEMA = maybe_simple_id({cv.GenerateID(): cv.use_id(MediaPlayer)})
-
 
 @automation.register_action(
     "media_player.play_media",
@@ -153,7 +152,6 @@ async def media_player_play_media_action(config, action_id, template_arg, args):
     media_url = await cg.templatable(config[CONF_MEDIA_URL], args, cg.std_string)
     cg.add(var.set_media_url(media_url))
     return var
-
 
 @automation.register_action("media_player.play", PlayAction, MEDIA_PLAYER_ACTION_SCHEMA)
 @automation.register_action(
@@ -183,7 +181,6 @@ async def media_player_action(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
     return var
 
-
 @automation.register_action(
     "media_player.volume_set",
     VolumeSetAction,
@@ -202,8 +199,6 @@ async def media_player_volume_set_action(config, action_id, template_arg, args):
     cg.add(var.set_volume(volume))
     return var
 
-
 @coroutine_with_priority(100.0)
 async def to_code(config):
-    cg.add_global(media_player_ns.using)
-    cg.add_define("USE_MEDIA_PLAYER")
+    cg.add_
