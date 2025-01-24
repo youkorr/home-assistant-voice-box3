@@ -1,6 +1,6 @@
 #pragma once
 
-#include "esphome/components/audio_dac/audio_dac.h" // Assure-toi que ce fichier existe
+#include "esphome/components/audio_dac/audio_dac.h" // Assurez-vous que ce fichier existe
 #include "esphome/components/i2c/i2c.h"
 #include "esphome/core/component.h"
 
@@ -29,24 +29,24 @@ enum ES8311Resolution : uint8_t {
 };
 
 struct ES8311Coefficient {
-  uint32_t mclk;     // mclk frequency
-  uint32_t rate;     // sample rate
-  uint8_t pre_div;   // the pre divider with range from 1 to 8
-  uint8_t pre_mult;  // the pre multiplier with x1, x2, x4 and x8 selection
-  uint8_t adc_div;   // adcclk divider
-  uint8_t dac_div;   // dacclk divider
-  uint8_t fs_mode;   // single speed (0) or double speed (1)
-  uint8_t lrck_h;    // adc lrck divider and dac lrck divider
+  uint32_t mclk;     // fréquence mclk
+  uint32_t rate;     // fréquence d'échantillonnage
+  uint8_t pre_div;   // le pré-diviseur avec une plage de 1 à 8
+  uint8_t pre_mult;  // le pré-multiplicateur avec sélection x1, x2, x4 et x8
+  uint8_t adc_div;   // diviseur adcclk
+  uint8_t dac_div;   // diviseur dacclk
+  uint8_t fs_mode;   // vitesse simple (0) ou double vitesse (1)
+  uint8_t lrck_h;    // diviseur lrck adc et diviseur lrck dac
   uint8_t lrck_l;    //
-  uint8_t bclk_div;  // sclk divider
-  uint8_t adc_osr;   // adc osr
-  uint8_t dac_osr;   // dac osr
+  uint8_t bclk_div;  // diviseur sclk
+  uint8_t adc_osr;   // osr adc
+  uint8_t dac_osr;   // osr dac
 };
 
 class ES8311 : public audio_dac::AudioDac, public Component, public i2c::I2CDevice {
  public:
   /////////////////////////
-  // Component overrides //
+  // Overrides de Component //
   /////////////////////////
 
   void setup() override;
@@ -54,17 +54,18 @@ class ES8311 : public audio_dac::AudioDac, public Component, public i2c::I2CDevi
   void dump_config() override;
 
   ////////////////////////
-  // AudioDac overrides //
+  // Overrides de AudioDac //
   ////////////////////////
 
-  bool set_volume(float volume) override;
-  float volume() override;
+  // Vérifiez que ces méthodes existent dans audio_dac::AudioDac
+  bool set_volume(float volume) override; // Assurez-vous que cette méthode existe dans la classe de base
+  float volume() override; // Assurez-vous que cette méthode existe dans la classe de base
   bool set_mute_off() override { return this->set_mute_state_(false); }
   bool set_mute_on() override { return this->set_mute_state_(true); }
   bool is_muted() override { return this->is_muted_; }
 
   //////////////////////////////////
-  // ES8311 configuration setters //
+  // Setters de configuration ES8311 //
   //////////////////////////////////
 
   void set_use_mclk(bool use_mclk) { this->use_mclk_ = use_mclk; }
@@ -79,36 +80,11 @@ class ES8311 : public audio_dac::AudioDac, public Component, public i2c::I2CDevi
  protected:
   bool is_muted_ = false; // Ajout de la variable membre
 
-  /// @brief Computes the register value for the configured resolution (bits per sample)
+  /// @brief Calcule la valeur du registre pour la résolution configurée (bits par échantillon)
   static uint8_t calculate_resolution_value(ES8311Resolution resolution);
 
-  /// @brief Retrieves the appropriate registers values for the configured mclk and rate
+  /// @brief Récupère les valeurs de registre appropriées pour le mclk et le taux configurés
   static const ES8311Coefficient *get_coefficient(uint32_t mclk, uint32_t rate);
 
-  /// @brief Configures the ES8311 registers for the chosen sample rate
+  /// @brief Configure les registres ES8311 pour le taux d'échantillonnage choisi
   bool configure_clock_();
-
-  /// @brief Configures the ES8311 registers for the chosen bits per sample
-  bool configure_format_();
-
-  /// @brief Configures the ES8311 microphone registers
-  bool configure_mic_();
-
-  /// @brief Mutes or unmute the DAC audio out
-  bool set_mute_state_(bool mute_state);
-
-  bool use_mic_;
-  ES8311MicGain mic_gain_;
-
-  bool use_mclk_;                // true = use dedicated MCLK pin, false = use SCLK
-  bool sclk_inverted_{false};    // SCLK is inverted
-  bool mclk_inverted_{false};    // MCLK is inverted (ignored if use_mclk_ == false)
-  uint32_t mclk_multiple_{256};  // MCLK frequency is sample rate * mclk_multiple_ (ignored if use_mclk_ == false)
-
-  uint32_t sample_frequency_;  // in Hz
-  ES8311Resolution resolution_in_;
-  ES8311Resolution resolution_out_;
-};
-
-}  // namespace es8311
-}  // namespace esphome
