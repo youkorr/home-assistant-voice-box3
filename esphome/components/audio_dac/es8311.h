@@ -57,23 +57,10 @@ class ES8311 : public audio_dac::AudioDac, public Component, public i2c::I2CDevi
   // AudioDac overrides //
   ////////////////////////
 
-  /// @brief Writes the volume out to the DAC
-  /// @param volume floating point between 0.0 and 1.0
-  /// @return True if successful and false otherwise
   bool set_volume(float volume) override;
-
-  /// @brief Gets the current volume out from the DAC
-  /// @return floating point between 0.0 and 1.0
   float volume() override;
-
-  /// @brief Disables mute for audio out
-  /// @return True if successful and false otherwise
   bool set_mute_off() override { return this->set_mute_state_(false); }
-
-  /// @brief Enables mute for audio out
-  /// @return True if successful and false otherwise
   bool set_mute_on() override { return this->set_mute_state_(true); }
-
   bool is_muted() override { return this->is_muted_; }
 
   //////////////////////////////////
@@ -90,32 +77,24 @@ class ES8311 : public audio_dac::AudioDac, public Component, public i2c::I2CDevi
   void set_mic_gain(ES8311MicGain mic_gain) { this->mic_gain_ = mic_gain; }
 
  protected:
+  bool is_muted_ = false; // Ajout de la variable membre
+
   /// @brief Computes the register value for the configured resolution (bits per sample)
-  /// @param resolution bits per sample enum for both audio in and audio out
-  /// @return register value
   static uint8_t calculate_resolution_value(ES8311Resolution resolution);
 
   /// @brief Retrieves the appropriate registers values for the configured mclk and rate
-  /// @param mclk mlck frequency in Hz
-  /// @param rate sample rate frequency in Hz
-  /// @return ES8311Coeffecient containing appropriate register values to configure the ES8311 or nullptr if impossible
   static const ES8311Coefficient *get_coefficient(uint32_t mclk, uint32_t rate);
 
   /// @brief Configures the ES8311 registers for the chosen sample rate
-  /// @return True if successful and false otherwise
   bool configure_clock_();
 
   /// @brief Configures the ES8311 registers for the chosen bits per sample
-  /// @return True if successful and false otherwise
   bool configure_format_();
 
   /// @brief Configures the ES8311 microphone registers
-  /// @return True if successful and false otherwise
   bool configure_mic_();
 
   /// @brief Mutes or unmute the DAC audio out
-  /// @param mute_state True to mute, false to unmute
-  /// @return
   bool set_mute_state_(bool mute_state);
 
   bool use_mic_;
