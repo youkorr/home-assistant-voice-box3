@@ -5,7 +5,7 @@ from esphome.automation import maybe_simple_id
 from esphome.core import coroutine_with_priority
 from esphome.const import CONF_ID, CONF_VOLUME
 
-CODEOWNERS = ["@kbx81"]
+CODEOWNERS = ["@youkorr"]
 IS_PLATFORM_COMPONENT = True
 
 audio_dac_ns = cg.esphome_ns.namespace("audio_dac")
