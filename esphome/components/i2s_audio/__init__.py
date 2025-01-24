@@ -11,6 +11,10 @@ import esphome.config_validation as cv
 from esphome.const import CONF_BITS_PER_SAMPLE, CONF_CHANNEL, CONF_ID, CONF_SAMPLE_RATE
 from esphome.cpp_generator import MockObjClass
 import esphome.final_validate as fv
+from esphome.components import microphone  # Importation du module microphone
+
+# Ajout de l'importation du module microphone
+from . import microphone
 
 CODEOWNERS = ["@youkorr"]
 DEPENDENCIES = ["esp32"]
@@ -37,97 +41,36 @@ CONF_RIGHT = "right"
 CONF_STEREO = "stereo"
 CONF_NUM_CHANNELS = "num_channels"
 
+# Déclaration de l'espace de noms et des classes
 i2s_audio_ns = cg.esphome_ns.namespace("i2s_audio")
 I2SAudioComponent = i2s_audio_ns.class_("I2SAudioComponent", cg.Component)
-I2SAudioBase = i2s_audio_ns.class_(
-    "I2SAudioBase", cg.Parented.template(I2SAudioComponent)
-)
+I2SAudioBase = i2s_audio_ns.class_("I2SAudioBase", cg.Parented.template(I2SAudioComponent))
 I2SAudioIn = i2s_audio_ns.class_("I2SAudioIn", I2SAudioBase)
 I2SAudioOut = i2s_audio_ns.class_("I2SAudioOut", I2SAudioBase)
 
-i2s_mode_t = cg.global_ns.enum("i2s_mode_t")
-I2S_MODE_OPTIONS = {
-    CONF_PRIMARY: i2s_mode_t.I2S_MODE_MASTER,  # NOLINT
-    CONF_SECONDARY: i2s_mode_t.I2S_MODE_SLAVE,  # NOLINT
-}
+# Ajout de la classe pour le microphone I2S
+I2SAudioMicrophone = i2s_audio_ns.class_("I2SAudioMicrophone", microphone.Microphone)
 
-# https://github.com/espressif/esp-idf/blob/master/components/soc/{variant}/include/soc/soc_caps.h
-I2S_PORTS = {
-    VARIANT_ESP32: 2,
-    VARIANT_ESP32S2: 1,
-    VARIANT_ESP32S3: 2,
-    VARIANT_ESP32C3: 1,
-}
+# Schéma de configuration pour le microphone I2S
+MICROPHONE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend({
+    cv.GenerateID(): cv.declare_id(I2SAudioMicrophone),
+    cv.Required(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
+    cv.Optional(CONF_SAMPLE_RATE, default=16000): cv.int_range(min=1),
+    cv.Optional(CONF_BITS_PER_SAMPLE, default=16): cv.enum(I2S_BITS_PER_SAMPLE),
+    cv.Optional(CONF_CHANNEL, default=CONF_MONO): cv.enum(I2S_CHANNELS),
+    cv.Optional(CONF_USE_APLL, default=False): cv.boolean,
+})
 
-i2s_channel_fmt_t = cg.global_ns.enum("i2s_channel_fmt_t")
-I2S_CHANNELS = {
-    CONF_MONO: i2s_channel_fmt_t.I2S_CHANNEL_FMT_ALL_LEFT,
-    CONF_LEFT: i2s_channel_fmt_t.I2S_CHANNEL_FMT_ONLY_LEFT,
-    CONF_RIGHT: i2s_channel_fmt_t.I2S_CHANNEL_FMT_ONLY_RIGHT,
-    CONF_STEREO: i2s_channel_fmt_t.I2S_CHANNEL_FMT_RIGHT_LEFT,
-}
-
-i2s_bits_per_sample_t = cg.global_ns.enum("i2s_bits_per_sample_t")
-I2S_BITS_PER_SAMPLE = {
-    8: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_8BIT,
-    16: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_16BIT,
-    24: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_24BIT,
-    32: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_32BIT,
-}
-
-i2s_bits_per_chan_t = cg.global_ns.enum("i2s_bits_per_chan_t")
-I2S_BITS_PER_CHANNEL = {
-    "default": i2s_bits_per_chan_t.I2S_BITS_PER_CHAN_DEFAULT,
-    8: i2s_bits_per_chan_t.I2S_BITS_PER_CHAN_8BIT,
-    16: i2s_bits_per_chan_t.I2S_BITS_PER_CHAN_16BIT,
-    24: i2s_bits_per_chan_t.I2S_BITS_PER_CHAN_24BIT,
-    32: i2s_bits_per_chan_t.I2S_BITS_PER_CHAN_32BIT,
-}
-
-_validate_bits = cv.float_with_unit("bits", "bit")
-
-
-def i2s_audio_component_schema(
-    class_: MockObjClass,
-    *,
-    default_sample_rate: int,
-    default_channel: str,
-    default_bits_per_sample: str,
-):
-    return cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(class_),
-            cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
-            cv.Optional(CONF_CHANNEL, default=default_channel): cv.enum(I2S_CHANNELS),
-            cv.Optional(CONF_SAMPLE_RATE, default=default_sample_rate): cv.int_range(
-                min=1
-            ),
-            cv.Optional(CONF_BITS_PER_SAMPLE, default=default_bits_per_sample): cv.All(
-                _validate_bits, cv.enum(I2S_BITS_PER_SAMPLE)
-            ),
-            cv.Optional(CONF_I2S_MODE, default=CONF_PRIMARY): cv.enum(
-                I2S_MODE_OPTIONS, lower=True
-            ),
-            cv.Optional(CONF_USE_APLL, default=False): cv.boolean,
-            cv.Optional(CONF_BITS_PER_CHANNEL, default="default"): cv.All(
-                cv.Any(cv.float_with_unit("bits", "bit"), "default"),
-                cv.enum(I2S_BITS_PER_CHANNEL),
-            ),
-        }
-    )
-
-
-async def register_i2s_audio_component(var, config):
-    await cg.register_parented(var, config[CONF_I2S_AUDIO_ID])
-
-    cg.add(var.set_i2s_mode(config[CONF_I2S_MODE]))
-    cg.add(var.set_channel(config[CONF_CHANNEL]))
+# Fonction pour générer le code du microphone I2S
+async def register_i2s_audio_microphone(var, config):
+    await cg.register_component(var, config)
+    cg.add(var.set_din_pin(config[CONF_I2S_DIN_PIN]))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
     cg.add(var.set_bits_per_sample(config[CONF_BITS_PER_SAMPLE]))
-    cg.add(var.set_bits_per_channel(config[CONF_BITS_PER_CHANNEL]))
+    cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_use_apll(config[CONF_USE_APLL]))
 
-
+# Ajout du microphone I2S au schéma global
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(I2SAudioComponent),
@@ -137,9 +80,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_I2S_DOUT_PIN): pins.internal_gpio_output_pin_number,
         cv.Optional(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
     }
-)
+).extend(MICROPHONE_SCHEMA)
 
-
+# Validation finale
 def _final_validate(_):
     i2s_audio_configs = fv.full_config.get()[CONF_I2S_AUDIO]
     variant = get_esp32_variant()
@@ -150,10 +93,9 @@ def _final_validate(_):
             f"Only {I2S_PORTS[variant]} I2S audio ports are supported on {variant}"
         )
 
-
 FINAL_VALIDATE_SCHEMA = _final_validate
 
-
+# Fonction principale pour générer le code
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
@@ -166,4 +108,4 @@ async def to_code(config):
     if CONF_I2S_DOUT_PIN in config:
         cg.add(var.set_dout_pin(config[CONF_I2S_DOUT_PIN]))
     if CONF_I2S_DIN_PIN in config:
-        cg.add(var.set_din_pin(config[CONF_I2S_DIN_PIN]))
+        await register_i2s_audio_microphone(var, config)
