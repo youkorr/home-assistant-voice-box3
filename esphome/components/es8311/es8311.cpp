@@ -25,30 +25,115 @@ void ES8311::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ES8311...");
 
   // Reset
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG00_RESET, 0x1F));
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG00_RESET, 0x00));
+  ESP_LOGD(TAG, "Resetting ES8311...");
+  if (!this->write_byte(ES8311_REG00_RESET, 0x1F)) {
+    ESP_LOGE(TAG, "Failed to reset ES8311!");
+    this->mark_failed();
+    return;
+  }
+  if (!this->write_byte(ES8311_REG00_RESET, 0x00)) {
+    ESP_LOGE(TAG, "Failed to clear reset!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Reset completed.");
 
-  ES8311_ERROR_FAILED(this->configure_clock_());
-  ES8311_ERROR_FAILED(this->configure_format_());
-  ES8311_ERROR_FAILED(this->configure_mic_());
+  // Configure clock
+  ESP_LOGD(TAG, "Configuring clock...");
+  if (!this->configure_clock_()) {
+    ESP_LOGE(TAG, "Clock configuration failed!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Clock configuration completed.");
+
+  // Configure format
+  ESP_LOGD(TAG, "Configuring audio format...");
+  if (!this->configure_format_()) {
+    ESP_LOGE(TAG, "Audio format configuration failed!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Audio format configuration completed.");
+
+  // Configure microphone
+  ESP_LOGD(TAG, "Configuring microphone...");
+  if (!this->configure_mic_()) {
+    ESP_LOGE(TAG, "Microphone configuration failed!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Microphone configuration completed.");
 
   // Set initial volume
+  ESP_LOGD(TAG, "Setting initial volume...");
   this->set_volume(0.75);  // 0.75 = 0xBF = 0dB
+  ESP_LOGD(TAG, "Initial volume set to 0.75.");
 
   // Power up analog circuitry
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG0D_SYSTEM, 0x01));
+  ESP_LOGD(TAG, "Powering up analog circuitry...");
+  if (!this->write_byte(ES8311_REG0D_SYSTEM, 0x01)) {
+    ESP_LOGE(TAG, "Failed to power up analog circuitry!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Analog circuitry powered up.");
+
   // Enable analog PGA, enable ADC modulator
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG0E_SYSTEM, 0x02));
+  ESP_LOGD(TAG, "Enabling analog PGA and ADC modulator...");
+  if (!this->write_byte(ES8311_REG0E_SYSTEM, 0x02)) {
+    ESP_LOGE(TAG, "Failed to enable analog PGA and ADC modulator!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Analog PGA and ADC modulator enabled.");
+
   // Power up DAC
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG12_SYSTEM, 0x00));
+  ESP_LOGD(TAG, "Powering up DAC...");
+  if (!this->write_byte(ES8311_REG12_SYSTEM, 0x00)) {
+    ESP_LOGE(TAG, "Failed to power up DAC!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "DAC powered up.");
+
   // Enable output to HP drive
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG13_SYSTEM, 0x10));
+  ESP_LOGD(TAG, "Enabling output to HP drive...");
+  if (!this->write_byte(ES8311_REG13_SYSTEM, 0x10)) {
+    ESP_LOGE(TAG, "Failed to enable output to HP drive!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Output to HP drive enabled.");
+
   // ADC Equalizer bypass, cancel DC offset in digital domain
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG1C_ADC, 0x6A));
+  ESP_LOGD(TAG, "Configuring ADC equalizer...");
+  if (!this->write_byte(ES8311_REG1C_ADC, 0x6A)) {
+    ESP_LOGE(TAG, "Failed to configure ADC equalizer!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "ADC equalizer configured.");
+
   // Bypass DAC equalizer
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG37_DAC, 0x08));
+  ESP_LOGD(TAG, "Bypassing DAC equalizer...");
+  if (!this->write_byte(ES8311_REG37_DAC, 0x08)) {
+    ESP_LOGE(TAG, "Failed to bypass DAC equalizer!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "DAC equalizer bypassed.");
+
   // Power On
-  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG00_RESET, 0x80));
+  ESP_LOGD(TAG, "Powering on ES8311...");
+  if (!this->write_byte(ES8311_REG00_RESET, 0x80)) {
+    ESP_LOGE(TAG, "Failed to power on ES8311!");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "ES8311 powered on.");
+
+  ESP_LOGCONFIG(TAG, "ES8311 setup completed successfully.");
 }
 
 void ES8311::dump_config() {
@@ -102,49 +187,70 @@ const ES8311Coefficient *ES8311::get_coefficient(uint32_t mclk, uint32_t rate) {
 }
 
 bool ES8311::configure_clock_() {
-  // Register 0x01: select clock source for internal MCLK and determine its frequency
-  uint8_t reg01 = 0x3F;  // Enable all clocks
-
   uint32_t mclk_frequency = this->sample_frequency_ * this->mclk_multiple_;
   if (!this->use_mclk_) {
-    reg01 |= BIT(7);  // Use SCLK
     mclk_frequency = this->sample_frequency_ * (int) this->resolution_out_ * 2;
+  }
+
+  auto *coefficient = get_coefficient(mclk_frequency, this->sample_frequency_);
+  if (coefficient == nullptr) {
+    ESP_LOGE(TAG, "Unsupported sample rate: %" PRIu32 "Hz with MCLK: %" PRIu32 "Hz", this->sample_frequency_, mclk_frequency);
+    return false;
+  }
+
+  // Register 0x01
+  uint8_t reg01 = 0x3F;
+  if (!this->use_mclk_) {
+    reg01 |= BIT(7);  // Use SCLK
   }
   if (this->mclk_inverted_) {
     reg01 |= BIT(6);  // Invert MCLK pin
   }
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG01_CLK_MANAGER, reg01));
-
-  // Get clock coefficients from coefficient table
-  auto *coefficient = get_coefficient(mclk_frequency, this->sample_frequency_);
-  if (coefficient == nullptr) {
-    ESP_LOGE(TAG, "Unable to configure sample rate %" PRIu32 "Hz with %" PRIu32 "Hz MCLK", this->sample_frequency_,
-             mclk_frequency);
+  if (!this->write_byte(ES8311_REG01_CLK_MANAGER, reg01)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x01!");
     return false;
   }
 
   // Register 0x02
   uint8_t reg02;
-  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG02_CLK_MANAGER, &reg02));
+  if (!this->read_byte(ES8311_REG02_CLK_MANAGER, &reg02)) {
+    ESP_LOGE(TAG, "Failed to read register 0x02!");
+    return false;
+  }
   reg02 &= 0x07;
   reg02 |= (coefficient->pre_div - 1) << 5;
   reg02 |= coefficient->pre_mult << 3;
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG02_CLK_MANAGER, reg02));
+  if (!this->write_byte(ES8311_REG02_CLK_MANAGER, reg02)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x02!");
+    return false;
+  }
 
   // Register 0x03
   const uint8_t reg03 = (coefficient->fs_mode << 6) | coefficient->adc_osr;
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG03_CLK_MANAGER, reg03));
+  if (!this->write_byte(ES8311_REG03_CLK_MANAGER, reg03)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x03!");
+    return false;
+  }
 
   // Register 0x04
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG04_CLK_MANAGER, coefficient->dac_osr));
+  if (!this->write_byte(ES8311_REG04_CLK_MANAGER, coefficient->dac_osr)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x04!");
+    return false;
+  }
 
   // Register 0x05
   const uint8_t reg05 = ((coefficient->adc_div - 1) << 4) | (coefficient->dac_div - 1);
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG05_CLK_MANAGER, reg05));
+  if (!this->write_byte(ES8311_REG05_CLK_MANAGER, reg05)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x05!");
+    return false;
+  }
 
   // Register 0x06
   uint8_t reg06;
-  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG06_CLK_MANAGER, &reg06));
+  if (!this->read_byte(ES8311_REG06_CLK_MANAGER, &reg06)) {
+    ESP_LOGE(TAG, "Failed to read register 0x06!");
+    return false;
+  }
   if (this->sclk_inverted_) {
     reg06 |= BIT(5);
   } else {
@@ -156,38 +262,57 @@ bool ES8311::configure_clock_() {
   } else {
     reg06 |= (coefficient->bclk_div) << 0;
   }
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG06_CLK_MANAGER, reg06));
+  if (!this->write_byte(ES8311_REG06_CLK_MANAGER, reg06)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x06!");
+    return false;
+  }
 
   // Register 0x07
   uint8_t reg07;
-  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG07_CLK_MANAGER, &reg07));
+  if (!this->read_byte(ES8311_REG07_CLK_MANAGER, &reg07)) {
+    ESP_LOGE(TAG, "Failed to read register 0x07!");
+    return false;
+  }
   reg07 &= 0xC0;
   reg07 |= coefficient->lrck_h << 0;
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG07_CLK_MANAGER, reg07));
+  if (!this->write_byte(ES8311_REG07_CLK_MANAGER, reg07)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x07!");
+    return false;
+  }
 
   // Register 0x08
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG08_CLK_MANAGER, coefficient->lrck_l));
+  if (!this->write_byte(ES8311_REG08_CLK_MANAGER, coefficient->lrck_l)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x08!");
+    return false;
+  }
 
-  // Successfully configured the clock
   return true;
 }
 
 bool ES8311::configure_format_() {
-  // Configure I2S mode and format
   uint8_t reg00;
-  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG00_RESET, &reg00));
+  if (!this->read_byte(ES8311_REG00_RESET, &reg00)) {
+    ESP_LOGE(TAG, "Failed to read register 0x00!");
+    return false;
+  }
   reg00 &= 0xBF;
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG00_RESET, reg00));
+  if (!this->write_byte(ES8311_REG00_RESET, reg00)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x00!");
+    return false;
+  }
 
-  // Configure SDP in resolution
   uint8_t reg09 = calculate_resolution_value(this->resolution_in_);
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG09_SDPIN, reg09));
+  if (!this->write_byte(ES8311_REG09_SDPIN, reg09)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x09!");
+    return false;
+  }
 
-  // Configure SDP out resolution
   uint8_t reg0a = calculate_resolution_value(this->resolution_out_);
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG0A_SDPOUT, reg0a));
+  if (!this->write_byte(ES8311_REG0A_SDPOUT, reg0a)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x0A!");
+    return false;
+  }
 
-  // Successfully configured the format
   return true;
 }
 
@@ -196,12 +321,21 @@ bool ES8311::configure_mic_() {
   if (this->use_mic_) {
     reg14 |= BIT(6);  // Enable PDM digital microphone
   }
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG14_SYSTEM, reg14));
+  if (!this->write_byte(ES8311_REG14_SYSTEM, reg14)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x14!");
+    return false;
+  }
 
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG16_ADC, this->mic_gain_));  // ADC gain scale up
-  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG17_ADC, 0xC8));             // Set ADC gain
+  if (!this->write_byte(ES8311_REG16_ADC, this->mic_gain_)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x16!");
+    return false;
+  }
 
-  // Successfully configured the microphones
+  if (!this->write_byte(ES8311_REG17_ADC, 0xC8)) {
+    ESP_LOGE(TAG, "Failed to write to register 0x17!");
+    return false;
+  }
+
   return true;
 }
 
