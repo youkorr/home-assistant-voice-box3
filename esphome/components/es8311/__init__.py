@@ -7,7 +7,7 @@ DEPENDENCIES = ["i2c"]
 AUTO_LOAD = ["audio_dac"]
 
 es8311_ns = cg.esphome_ns.namespace("es8311")
-ES8311 = es8311_ns.class_("ES8311Component", audio_dac.AudioDAC, i2c.I2CDevice, cg.Component)
+ES8311 = es8311_ns.class_("ES8311Component", audio_dac.DAC, i2c.I2CDevice, cg.Component)
 
 CONFIG_SCHEMA = audio_dac.AUDIO_DAC_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(ES8311),
