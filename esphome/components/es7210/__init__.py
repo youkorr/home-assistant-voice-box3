@@ -1,7 +1,8 @@
 import esphome.codegen as cg
 from esphome.components import i2c
 import esphome.config_validation as cv
-from esphome.const import CONF_BITS_PER_SAMPLE, CONF_ID, CONF_MIC_GAIN, CONF_SAMPLE_RATE
+from esphome.const import CONF_BITS_PER_SAMPLE, CONF_ID, CONF_SAMPLE_RATE
+CONF_MIC_GAIN = "mic_gain"  # Définir manuellement la constante manquante
 
 CODEOWNERS = ["@youkorr"]
 DEPENDENCIES = ["i2c"]
