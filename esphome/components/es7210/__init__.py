@@ -3,7 +3,7 @@ from esphome.components import i2c
 import esphome.config_validation as cv
 from esphome.const import CONF_BITS_PER_SAMPLE, CONF_ID, CONF_MIC_GAIN, CONF_SAMPLE_RATE
 
-CODEOWNERS = ["@kahrendt"]
+CODEOWNERS = ["@youkorr"]
 DEPENDENCIES = ["i2c"]
 
 es7210_ns = cg.esphome_ns.namespace("es7210")
